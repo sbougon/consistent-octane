@@ -15,6 +15,7 @@
   },
   "homepage": "https://github.com/sbougon/consistent-octane#readme",
   "dependencies": {
+    "ervy": "^1.0.7",
     "puppeteer": "^2.1.1",
     "stats-lite": "^2.2.0"
   }

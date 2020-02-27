@@ -1,5 +1,9 @@
 const puppeteer = require("puppeteer");
 const stats = require("stats-lite");
+const ervy = require("ervy");
+const { bar, bg } = ervy;
+
+//process.exit(1);
 
 const OCTANE_URL = "http://chromium.github.io/octane/";
 const START_OCTANE_SELECTOR = "#main-banner";
@@ -70,8 +74,12 @@ function displayResult(results) {
   const stdDev = Math.round(stats.sampleStdev(scores));
   const min = Math.min.apply(null, scores);
   const max = Math.max.apply(null, scores);
+  const barData = scores.map((entry, index) => {
+    return { key: `  ${index+1}  `, value: entry, style: bg("green") };
+  });
+  console.log(bar(barData, { barWidth: 5 }));
   console.log(
-    `  mean: ${mean}, standard deviation: ${stdDev} (min: ${min}, max ${max})`
+    `Statistics::  mean: ${mean}, standard deviation: ${stdDev} (min: ${min}, max ${max})\n`
   );
 }
 async function getOctane1BrowserNIterations(
@@ -105,8 +113,8 @@ async function getOctaneNBrowserNIterations(
       product: browserType
     });
     // wait for 15s for startup tasks to complete
-    await page.waitFor(15 * 1000);
     const page = await browser.newPage();
+    await page.waitFor(15 * 1000);
     const score = await getOctaneScore(page);
     if (score) {
       scores.push(score);
