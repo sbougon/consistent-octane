@@ -1,0 +1,21 @@
+{
+  "name": "consistent-octane",
+  "version": "1.0.0",
+  "description": "Get a Octane (benchmark) number that's consistent via many iterations",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sbougon/consistent-octane.git"
+  },
+  "keywords": [],
+  "author": "Steven Bougon",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sbougon/consistent-octane/issues"
+  },
+  "homepage": "https://github.com/sbougon/consistent-octane#readme",
+  "dependencies": {
+    "puppeteer": "^2.1.1",
+    "stats-lite": "^2.2.0"
+  }
+}
