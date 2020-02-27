@@ -16,6 +16,6 @@ node index.js
 
 # accepting pull requests for
 
-⋅⋅* Adding argument parsing logic to allow: headless or not, number of iteration, chrome or firefox or MS Edge
-..* output in JSON, table or text
+  * Adding argument parsing logic to allow: headless or not, number of iteration, chrome or firefox or MS Edge
+  * output in JSON, table or text
 
