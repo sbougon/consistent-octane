@@ -110,12 +110,17 @@ async function openBrowser({ headless, hostname, port }) {
       args: ["--headless"],
     };
   }
-  const browser = await remote({
+
+  const options = {
     logLevel: "warn", // trace | debug | info | warn | error | silent
     capabilities,
-    port,
-    hostname,
-  });
+  };
+
+  if (hostname && port) {
+    options.port = port;
+    options.hostname = hostname;
+  }
+  const browser = await remote(options);
   return browser;
 }
 
