@@ -1,68 +1,69 @@
-const puppeteer = require("puppeteer");
+const { remote } = require("webdriverio");
 const stats = require("stats-lite");
 const ervy = require("ervy");
 const { bar, bg } = ervy;
-
-//process.exit(1);
 
 const OCTANE_URL = "http://chromium.github.io/octane/";
 const START_OCTANE_SELECTOR = "#main-banner";
 const IS_RUNNING_SELECTOR = "#bar-appendix";
 const OCTANE_SCORE_TEMPLATE = "Octane Score: ";
-const ITERATIONS = 10;
+const DEFAULT_HOSTNAME = "localhost";
+const DEFAULT_PORT = 4444;
+
+const argv = require("yargs").argv;
 
 (async () => {
-  await run1BrowserNiterations();
-  await runNBrowserNiterations();
-  // headless ?
-  // await runHeadless1BrowserNiterations();
-  // await runHeadlessNBrowserNiterations();
+  const headless = argv.s || false; // headless or not
+  const iterations = argv.i || 10; // number of iterations
+  const nBrowsersMode = argv.n || false; // 1 or N browsers ?
+  const hostname = argv.h || DEFAULT_HOSTNAME;
+  const port = argv.p || DEFAULT_PORT;
+  if (nBrowsersMode) {
+    await runNBrowserNiterations({ headless, iterations, hostname, port });
+  } else {
+    await run1BrowserNiterations({ headless, iterations, hostname, port });
+  }
 })();
 
-// Open headless browser, repeat ITERATIONS times: open a tab and calculate Octane
-async function runHeadless1BrowserNiterations() {
-  // start 1 Browser and get N Octane, via opening/closing a tab, N times
-  const oneBrowserHeadless = await getOctane1BrowserNIterations(
-    ITERATIONS,
-    true
-  );
-  displayResult({
-    description: `Open headless browser, repeat ${ITERATIONS} times: open a tab and calculate Octane`,
-    scores: oneBrowserHeadless
-  });
-}
-
 // Open browser, repeat ITERATIONS times: open a tab and calculate Octane
-async function run1BrowserNiterations() {
-  const oneBrowserNotHeadless = await getOctane1BrowserNIterations(
-    ITERATIONS,
-    false
-  );
-  displayResult({
-    description: `Open browser, repeat ${ITERATIONS} times: open a tab and calculate Octane`,
-    scores: oneBrowserNotHeadless
+async function run1BrowserNiterations({
+  headless,
+  iterations,
+  hostname,
+  port,
+}) {
+  const scores = await getOctane1BrowserNIterations({
+    headless,
+    iterations,
+    hostname,
+    port,
   });
-}
-
-// repeat ITERATIONS times: open headless browser, open a tab and calculate Octane
-async function runHeadlessNBrowserNiterations() {
-  // start 1 Browser and get 1 Octane, repeat
-  const nBrowserHeadless = await getOctaneNBrowserNIterations(ITERATIONS, true);
   displayResult({
-    description: `repeat ${ITERATIONS} times: open headless browser, open a tab and calculate Octane`,
-    scores: nBrowserHeadless
+    description: `Open ${
+      headless ? "headless" : ""
+    } browser, repeat ${iterations} times: open a tab and calculate Octane`,
+    scores,
   });
 }
 
 // repeat ITERATIONS times: open browser, open a tab and calculate Octane
-async function runNBrowserNiterations() {
-  const nBrowserNotHeadless = await getOctaneNBrowserNIterations(
-    ITERATIONS,
-    false
-  );
+async function runNBrowserNiterations({
+  headless,
+  iterations,
+  hostname,
+  port,
+}) {
+  const scores = await getOctaneNBrowserNIterations({
+    headless,
+    iterations,
+    hostname,
+    port,
+  });
   displayResult({
-    description: `repeat ${ITERATIONS} times: open browser, open a tab and calculate Octane`,
-    scores: nBrowserNotHeadless
+    description: `repeat ${iterations} times: open ${
+      headless ? "headless" : ""
+    } browser, open a tab and calculate Octane`,
+    scores,
   });
 }
 
@@ -75,67 +76,98 @@ function displayResult(results) {
   const min = Math.min.apply(null, scores);
   const max = Math.max.apply(null, scores);
   const barData = scores.map((entry, index) => {
-    return { key: `  ${index+1}  `, value: entry, style: bg("green") };
+    return { key: `  ${index + 1}  `, value: entry, style: bg("green") };
   });
   console.log(bar(barData, { barWidth: 5 }));
   console.log(
     `Statistics::  mean: ${mean}, standard deviation: ${stdDev} (min: ${min}, max ${max})\n`
   );
 }
-async function getOctane1BrowserNIterations(
+async function getOctane1BrowserNIterations({
+  headless,
   iterations,
-  headless = true,
-  browserType = "chrome"
-) {
+  hostname,
+  port,
+}) {
   const scores = [];
-  const browser = await puppeteer.launch({
-    headless: headless,
-    product: browserType
-  });
+  const browser = await openBrowser({ headless, hostname, port });
   for (let i = 0; i < iterations; i++) {
-    const page = await browser.newPage();
-    scores.push(await getOctaneScore(page));
-    await page.close();
+    scores.push(await getOctaneScore(browser));
   }
-  await browser.close();
+  await closeBrowser(browser);
   return scores;
 }
 
-async function getOctaneNBrowserNIterations(
+async function openBrowser({ headless, hostname, port }) {
+  let capabilities = {
+    browserName: "chrome",
+  };
+  debugger;
+  if (headless) {
+    capabilities["goog:chromeOptions"] = {
+      // to run chrome headless the following flags are required
+      // (see https://developers.google.com/web/updates/2017/04/headless-chrome)
+      args: ["--headless"],
+    };
+  }
+  const browser = await remote({
+    logLevel: "warn", // trace | debug | info | warn | error | silent
+    capabilities,
+    port,
+    hostname,
+  });
+  return browser;
+}
+
+async function wait(browser, milliseconds) {
+  await browser.pause(milliseconds);
+}
+
+async function closeBrowser(browser) {
+  await browser.deleteSession();
+}
+
+async function getOctaneNBrowserNIterations({
+  headless,
   iterations,
-  headless = true,
-  browserType = "chrome"
-) {
+  hostname,
+  port,
+}) {
   const scores = [];
   for (let i = 0; i < iterations; i++) {
-    const browser = await puppeteer.launch({
-      headless: headless,
-      product: browserType
+    const browser = await openBrowser({
+      headless,
+      hostname,
+      port,
     });
     // wait for 15s for startup tasks to complete
-    const page = await browser.newPage();
-    await page.waitFor(15 * 1000);
-    const score = await getOctaneScore(page);
+    wait(browser, 15 * 1000);
+    const score = await getOctaneScore(browser);
     if (score) {
       scores.push(score);
     }
-    await page.close();
-    await browser.close();
+    await closeBrowser(browser);
   }
   return scores;
 }
 
-async function getOctaneScore(page) {
+async function getOctaneScore(browser) {
   let score = null;
-  await page.goto(OCTANE_URL);
-  await page.click(START_OCTANE_SELECTOR);
-  await page.waitFor(60 * 1000);
-  while ((await page.$(IS_RUNNING_SELECTOR)) !== null) {
-    console.log("Going to wait for another minute");
-    await page.waitFor(60 * 1000);
+  await browser.url(OCTANE_URL);
+  const start = await browser.$(START_OCTANE_SELECTOR);
+  await start.click();
+  await wait(browser, 60 * 1000);
+  let found = false;
+  while (found === false) {
+    const isRunning = await browser.$(IS_RUNNING_SELECTOR);
+    if (await isRunning.isExisting()) {
+      await wait(browser, 60 * 1000);
+    } else {
+      found = true;
+    }
   }
 
-  const octaneResultText = await page.evaluate(() => {
+  const octaneResultText = await browser.execute(() => {
     const element = document.querySelector("#main-banner");
     if (element) {
       return element.textContent;
