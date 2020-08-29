@@ -1,6 +1,6 @@
 {
   "name": "consistent-octane",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Get a Octane (benchmark) number that's consistent via many iterations",
   "main": "index.js",
   "repository": {

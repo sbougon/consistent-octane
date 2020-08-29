@@ -18,10 +18,23 @@ const argv = require("yargs").argv;
   const nBrowsersMode = argv.n || false; // 1 or N browsers ?
   const hostname = argv.h || DEFAULT_HOSTNAME;
   const port = argv.p || DEFAULT_PORT;
+  const verbose = argv.v || false;
   if (nBrowsersMode) {
-    await runNBrowserNiterations({ headless, iterations, hostname, port });
+    await runNBrowserNiterations({
+      headless,
+      iterations,
+      hostname,
+      port,
+      verbose,
+    });
   } else {
-    await run1BrowserNiterations({ headless, iterations, hostname, port });
+    await run1BrowserNiterations({
+      headless,
+      iterations,
+      hostname,
+      port,
+      verbose,
+    });
   }
 })();
 
@@ -31,12 +44,14 @@ async function run1BrowserNiterations({
   iterations,
   hostname,
   port,
+  verbose,
 }) {
   const scores = await getOctane1BrowserNIterations({
     headless,
     iterations,
     hostname,
     port,
+    verbose,
   });
   displayResult({
     description: `Open ${
@@ -52,12 +67,14 @@ async function runNBrowserNiterations({
   iterations,
   hostname,
   port,
+  verbose,
 }) {
   const scores = await getOctaneNBrowserNIterations({
     headless,
     iterations,
     hostname,
     port,
+    verbose,
   });
   displayResult({
     description: `repeat ${iterations} times: open ${
@@ -88,11 +105,16 @@ async function getOctane1BrowserNIterations({
   iterations,
   hostname,
   port,
+  verbose,
 }) {
   const scores = [];
   const browser = await openBrowser({ headless, hostname, port });
   for (let i = 0; i < iterations; i++) {
-    scores.push(await getOctaneScore(browser));
+    const score = await getOctaneScore(browser);
+    scores.push(score);
+    if (verbose) {
+      console.log(`${i + 1}) ${score}`);
+    }
   }
   await closeBrowser(browser);
   return scores;
@@ -137,6 +159,7 @@ async function getOctaneNBrowserNIterations({
   iterations,
   hostname,
   port,
+  verbose,
 }) {
   const scores = [];
   for (let i = 0; i < iterations; i++) {
@@ -150,6 +173,9 @@ async function getOctaneNBrowserNIterations({
     const score = await getOctaneScore(browser);
     if (score) {
       scores.push(score);
+      if (verbose) {
+        console.log(`${i + 1}) ${score}`);
+      }
     }
     await closeBrowser(browser);
   }
